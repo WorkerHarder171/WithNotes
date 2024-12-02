@@ -1,30 +1,36 @@
 import { useState, useEffect } from "react";
 import { RiSettingsLine } from "react-icons/ri";
 import { IoLogIn } from "react-icons/io5";
-import ModalSignIn from "@/components/modals/sign-in/ModalSignIn";
 import { authService } from "@/config/auth";
 import { Button, Menu, MenuItem } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import pp from "@/assets/pp.jpg";
 import { supabase } from "@/config/supabase/supabaseClient";
+import pp from "@/assets/pp.jpg";
+import ModalSignIn from "@/components/modals/sign-in/ModalSignIn";
 
 export default function Navbar(): JSX.Element {
-  const [currentPath, setCurrentPath] = useState<string>(
-    window.location.hash.substring(1) || "all"
-  );
-  const [openModal, setOpenModal] = useState<boolean>(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  // get State
   const [user, setUser] = useState<{ username: string } | null>(null);
+  // check if user is authorized
   const [isAuthorized, setIsAuthorized] = useState<boolean>(
     authService.isAuthorized()
   );
 
-  const isMenuOpen = Boolean(anchorEl);
   const navigate = useNavigate();
-
+  
+  // default path
+  const [currentPath, setCurrentPath] = useState<string>(
+    window.location.hash.substring(1) || "all"
+  );
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const isMenuOpen = Boolean(anchorEl);
+  
+  // open modal
+  const [openModal, setOpenModal] = useState<boolean>(false);
   const handleOpenModal = (): void => setOpenModal(true);
   const handleCloseModal = (): void => setOpenModal(false);
 
+// get user data
   const getUser = async (): Promise<void> => {
     const {
       data: { user },
@@ -46,23 +52,22 @@ export default function Navbar(): JSX.Element {
       if (error) {
         console.error("Error fetching user data:", error.message);
       } else {
-        setUser(data || null);
+        setUser(data);
       }
     }
   };
 
-  useEffect(() => {
-    if (isAuthorized) {
-      getUser();
-    }
-  }, [isAuthorized]);
-
+  // handle menu click
   const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleMenuProfile = () => {
+    navigate("/profile");
   };
 
   const handleLogout = async () => {
@@ -73,16 +78,21 @@ export default function Navbar(): JSX.Element {
     navigate("/");
   };
 
+// render user data
   useEffect(() => {
+    if (!isAuthorized) {
+      console.log("User is unauthorized");
+    }
+    getUser();
+
     const handleHashChange = () => {
       setCurrentPath(window.location.hash.substring(1) || "all");
     };
-
     window.addEventListener("hashchange", handleHashChange);
     return () => {
       window.removeEventListener("hashchange", handleHashChange);
     };
-  }, []);
+  }, [isAuthorized]);
 
   const navItems: { name: string; link: string }[] = [
     { name: "All", link: "#all" },
@@ -105,9 +115,7 @@ export default function Navbar(): JSX.Element {
             src={pp}
             alt="Profile"
           />
-          <p className="name-profile font-medium text-xl">
-            {user ? user.username : "Guest"}
-          </p>
+          <p className="name-profile font-medium text-xl">{user ? user.username : ""}</p>
         </div>
 
         {/* Navigation Links */}
@@ -174,7 +182,7 @@ export default function Navbar(): JSX.Element {
               "aria-labelledby": "basic-button",
             }}
           >
-            <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
+            <MenuItem onClick={handleMenuProfile}>Profile</MenuItem>
             <MenuItem onClick={handleMenuClose}>My account</MenuItem>
             <MenuItem onClick={handleLogout}>Logout</MenuItem>
           </Menu>

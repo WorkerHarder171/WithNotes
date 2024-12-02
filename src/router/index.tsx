@@ -5,6 +5,7 @@ import LandingPage from "@/pages/LandingPage";
 import { PrivateRoute } from "./private-route";
 import Unauthorized from "@/error/Unauthorized";
 import NotFound from "@/error/NotFound";
+import Profile from "@/pages/Profile";
 
 export default function AppRoutes(): JSX.Element {
   return (
@@ -12,8 +13,10 @@ export default function AppRoutes(): JSX.Element {
       <Route path="/" element={<LayoutDashboardRoot />}>
         <Route index element={<LandingPage />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
-          <Route path="*" element={<NotFound />} />
+        <Route path="*" element={<NotFound />} />
         <Route element={<PrivateRoute />}>
+          <Route path="profile" element={<Profile />} />
+
           <Route path="dashboard" element={<AccessPages />} />
         </Route>
       </Route>

@@ -34,46 +34,40 @@ export default function ModalSignUp({ isOpen, onClose }: ModalSignUpProps) {
   } = useForm<FormData>();
 
   const handleOnSubmit = async (data: FormData): Promise<void> => {
-    try {
-      const { user, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-      });
+    const { user, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+    });
 
-      if (authError) {
-        console.error(
-          "Error during authentication sign-up:",
-          authError.message
-        );
-        alert("Failed to register. Please try again.");
-        return;
-      }
-
-      const { error: dbError } = await supabase.from("user").insert({
-        id: uuidv4(),
-        fullname: data.fullname,
-        username: data.username,
-        email: data.email,
-        phone: data.phone,
-        password: data.password,
-        birthday: data.birthday,
-        address: data.address,
-        created_at: new Date().toISOString(),
-        uid: user?.id,
-      });
-
-      if (dbError) {
-        console.error("Error inserting data:", dbError.message);
-        alert("Failed to save user data. Please try again.");
-        return;
-      }
-      console.log("aaaa", FormData);
-      console.log("User registered and data saved successfully");
-      onClose();
-    } catch (error) {
-      console.error("Error during sign-up:", error.message);
-      alert("An unexpected error occurred. Please try again.");
+    if (authError) {
+      console.error("Error during authentication sign-up:", authError.message);
+      alert("Failed to register. Please try again.");
+      return;
     }
+
+    const { error: dbError } = await supabase.from("user").insert({
+      id: uuidv4(),
+      fullname: data.fullname,
+      username: data.username,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+      birthday: data.birthday,
+      address: data.address,
+      created_at: new Date().toISOString(),
+      uid: user?.id,
+    });
+
+    if (dbError) {
+      console.error("Error inserting data:", dbError.message);
+      alert("Failed to save user data. Please try again.");
+      return;
+    }
+    console.log("aaaa", FormData);
+    console.log("User registered and data saved successfully");
+    onClose();
+    console.error("Error during sign-up:", error.message);
+    alert("An unexpected error occurred. Please try again.");
   };
 
   return (
@@ -191,7 +185,7 @@ export default function ModalSignUp({ isOpen, onClose }: ModalSignUpProps) {
               )}
             />
 
-            <Controller
+            {/* <Controller
               name="confirmPassword"
               control={control}
               rules={{
@@ -211,7 +205,7 @@ export default function ModalSignUp({ isOpen, onClose }: ModalSignUpProps) {
                   {...field}
                 />
               )}
-            />
+            /> */}
           </Box>
 
           {/* Other Fields */}
