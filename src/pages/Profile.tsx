@@ -4,13 +4,13 @@ import { Box, Button, Grid, TextField } from "@mui/material";
 import { useForm, Controller } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { supabase } from "@/config/supabase/supabaseClient";
+import { v4 as uuidv4 } from "uuid";
+import { CircularProgress } from "@mui/material";
 
 interface FormData {
   fullname: string;
   username: string;
   email: string;
-  password: string;
-  confirmPassword: string;
   birthday: string;
   address: string;
   phone: string;
@@ -27,8 +27,11 @@ export default function Profile(): JSX.Element {
   const [userId, setUserId] = useState<string | null>(null);
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Fetch user data from Supabase
   async function fetchUserData() {
+    setIsLoading(true);
     try {
       const {
         data: { user },
@@ -47,10 +50,7 @@ export default function Profile(): JSX.Element {
         .single();
 
       if (fetchError) {
-        console.error(
-          "Error fetching user data from table:",
-          fetchError.message
-        );
+        console.error("Error fetching user data:", fetchError.message);
       } else {
         setUserId(userData.id);
         setValue("fullname", userData.fullname);
@@ -59,19 +59,24 @@ export default function Profile(): JSX.Element {
         setValue("birthday", userData.birthday);
         setValue("address", userData.address);
         setValue("phone", userData.phone);
-        setProfilePicture(userData.profile_picture);
+        setProfilePicture(userData.pictures);
       }
     } catch (error) {
       console.error("Error in fetchUserData:", error);
+    } finally {
+      setIsLoading(false);
     }
   }
 
   useEffect(() => {
     fetchUserData();
-  });
+  }, []);
 
+  // Handle form submission
   async function handleOnSubmit(data: FormData) {
     if (!userId) return;
+
+    setIsLoading(true);
 
     try {
       const { error } = await supabase
@@ -91,61 +96,116 @@ export default function Profile(): JSX.Element {
         alert("Failed to update profile!");
       } else {
         alert("Profile updated successfully!");
+        console.log("ini merupakan profile", profilePicture);
       }
     } catch (error) {
       console.error("Error in handleOnSubmit:", error);
+    } finally {
+      setIsLoading(false);
     }
   }
 
+  // Handle file upload
   async function handleFileUpload() {
-    if (!selectedFile || !userId) return;
+    if (!selectedFile) return;
 
-    const fileName = `pictures/${userId}-${selectedFile.name}`;
-    const { data, error } = await supabase.storage
-      .from("pictures")
-      .upload(fileName, selectedFile);
+    setIsLoading(true);
+    try {
+      const filePath = `images/${uuidv4()}_${selectedFile.name}`;
+      const { error } = await supabase.storage
+        .from("images")
+        .upload(filePath, selectedFile);
 
-    if (error) {
-      console.error("Error uploading file:", error.message);
-    } else if (data) {
-      const publicUrl = supabase.storage
-        .from("pictures")
-        .getPublicUrl(fileName).data.publicUrl;
+      if (error) {
+        console.error("Error uploading file:", error.message);
+        return;
+      }
 
-      await supabase
+      const fileUrl = supabase.storage.from("images").getPublicUrl(filePath)
+        .data.publicUrl;
+
+      const { error: updateError } = await supabase
         .from("user")
-        .update({ pictures: publicUrl })
+        .update({ pictures: fileUrl })
         .eq("id", userId);
 
-      setProfilePicture(publicUrl);
-      alert("Profile picture updated successfully!");
+      if (updateError) {
+        console.error("Error updating user data:", updateError.message);
+      } else {
+        setProfilePicture(fileUrl);
+        alert("Profile picture updated successfully!");
+      }
+    } catch (error) {
+      console.error("Error in handleFileUpload:", error);
+    } finally {
+      setIsLoading(false);
     }
   }
 
+  // handle file change
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       setSelectedFile(event.target.files[0]);
     }
   };
 
+  // Handle delete picture
+  async function handleDeletePicture() {
+    if (!profilePicture) return;
+
+    setIsLoading(true);
+    try {
+      const filePath = profilePicture.split("/").pop();
+      const { error: deleteError } = await supabase.storage
+        .from("images")
+        .remove([`images/${filePath}`]);
+
+      if (deleteError) {
+        console.error("Error deleting file:", deleteError.message);
+        return;
+      }
+      const { error: updateError } = await supabase
+        .from("user")
+        .update({ pictures: null })
+        .eq("id", userId);
+
+      if (updateError) {
+        console.error("Error updating user data:", updateError.message);
+      } else {
+        setProfilePicture(null);
+        alert("Profile picture deleted successfully!");
+      }
+    } catch (error) {
+      console.error("Error in handleDeletePicture:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <LayoutDashboardContent>
       <div className="w-full bg-[#E2E6E9]">
-        <div className="bg-[#fff]  p-10 rounded-[10px] border shadow">
+        <div className="bg-[#fff] p-10 rounded-[10px] border shadow">
           <div className="navbar mb-10">
             <p className="text-xl capitalize font-semibold text-left">
               Profile
             </p>
           </div>
 
+          {/* Profile Picture */}
           <Box display={"flex"} justifyContent={"center"} alignItems={"center"}>
-            <img
-              src={profilePicture || pp}
-              alt="Profile Picture"
-              className="w-[100px] h-[100px] object-cover border rounded-full"
-            />
+            {isLoading ? (
+              <CircularProgress size={30} />
+            ) : (
+              <img
+                src={profilePicture || pp}
+                alt="Profile Picture"
+                className="w-[100px] h-[100px] object-cover border rounded-full"
+              />
+            )}
           </Box>
 
+          {/* File Upload */}
           <Box
             display={"flex"}
             justifyContent={"center"}
@@ -153,7 +213,16 @@ export default function Profile(): JSX.Element {
             gap={"10px"}
             mt={2}
           >
-            {!selectedFile ? (
+            {selectedFile ? (
+              <Button
+                variant="contained"
+                color="success"
+                onClick={handleFileUpload}
+                disabled={!selectedFile && isLoading}
+              >
+                {isLoading ? "Uploading..." : "Upload Picture"}
+              </Button>
+            ) : (
               <Button variant="contained" component="label">
                 Change Picture
                 <input
@@ -163,23 +232,19 @@ export default function Profile(): JSX.Element {
                   onChange={handleFileChange}
                 />
               </Button>
-            ) : (
-              <Button
-                variant="contained"
-                color="success"
-                onClick={handleFileUpload}
-                disabled={!selectedFile}
-              >
-                Upload Picture
-              </Button>
             )}
 
-            <Button variant="outlined" color="error" onClick={handleFileUpload}>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={handleDeletePicture}
+              disabled={!profilePicture}
+            >
               Delete Picture
             </Button>
           </Box>
 
-          {/* Menampilkan status file yang dipilih */}
+          {/* File Upload Status */}
           <Box display="flex" justifyContent="center" mt={1}>
             {selectedFile ? (
               <p>Selected file: {selectedFile.name}</p>
@@ -188,9 +253,10 @@ export default function Profile(): JSX.Element {
             )}
           </Box>
 
+          {/* Form */}
           <form
             onSubmit={handleSubmit(handleOnSubmit)}
-            className="w-full mt-10 "
+            className="w-full mt-10"
           >
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>

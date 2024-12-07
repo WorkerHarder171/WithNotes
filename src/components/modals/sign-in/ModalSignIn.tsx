@@ -15,7 +15,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/config/supabase/supabaseClient";
 import { authService } from "@/config/auth";
 import { useNavigate } from "react-router-dom";
-import { AuthError, Session } from "@supabase/supabase-js";
 import ModalSignUp from "../sign-up/ModalSignUp";
 
 interface ModalSignInProps {
@@ -39,18 +38,84 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
 
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [openModal, setOpenModal] = useState<boolean>(false);
+  const [isSignUpModalOpen, setSignUpModalOpen] = useState<boolean>(false);
 
-  const handleOpenModal = (): void => setOpenModal(true);
-  const handleCloseModal = (): void => setOpenModal(false);
+  const handleOpenSignUpModal = (): void => setSignUpModalOpen(true);
+  const handleCloseSignUpModal = (): void => setSignUpModalOpen(false);
 
+  const checkIfUserExists = async (email: string) => {
+    const { data, error } = await supabase
+      .from("user")
+      .select("email")
+      .eq("email", email)
+      .single();
+
+    if (error || !data) {
+      setSignUpModalOpen(true);
+      return false;
+    }
+    return true;
+  };
+
+const chekIfCanLogin = async(email:string) => {
+
+
+}
+
+  const handleLoginWithOAuth = async (
+    provider: "google" | "github" | "facebook"
+  ): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        console.error("OAuth login failed:", error.message);
+        return false;
+      }
+
+      if (data?.user) {
+        const userExists = await checkIfUserExists(data.user.email);
+        if (!userExists) {
+          return false;
+        }
+      }
+
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
+
+      if (sessionError || !sessionData?.session) {
+        setErrorMessage(sessionError?.message || "Failed to retrieve session.");
+        console.error("Failed to retrieve session:", sessionError?.message);
+        return false;
+      }
+      const { access_token, refresh_token, user } = sessionData.session;
+      authService.storeCredentialsToken({
+        token: access_token,
+        refreshToken: refresh_token,
+        oauthAccessToken: user?.email ?? "",
+      });
+
+      console.log("OAuth login successful:", sessionData);
+      navigate("/dashboard");
+      return true;
+    } catch (err) {
+      setErrorMessage("Unexpected error during OAuth login.");
+      console.error("OAuth login error:", err);
+      return false;
+    }
+  };
+
+  // Function to handle login with email and password
   const handleLoginWithEmail = async (data: FormData): Promise<boolean> => {
     try {
       const { email, password } = data;
-      const {
-        data: session,
-        error,
-      }: { data: Session | null; error: AuthError | null } =
+      const { data: loginResponse, error } =
         await supabase.auth.signInWithPassword({
           email,
           password,
@@ -62,13 +127,15 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
         return false;
       }
 
-      if (session) {
+      if (loginResponse.session) {
+        const { access_token, refresh_token } = loginResponse.session;
         authService.storeCredentialsToken({
-          token: session.session?.access_token!,
-          refreshToken: session.session?.refresh_token!,
-          oauthAccessToken: session.user?.email!,
+          token: access_token,
+          refreshToken: refresh_token,
+          oauthAccessToken: loginResponse.user?.email ?? "",
         });
-        console.log("Login successful:", session);
+
+        console.log("Login successful:", loginResponse);
         navigate("/dashboard");
         return true;
       }
@@ -79,7 +146,7 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
     return false;
   };
 
-  
+  // Submit handler
   const handleOnSubmit = async (data: FormData): Promise<void> => {
     const isLoginSuccessful = await handleLoginWithEmail(data);
     if (isLoginSuccessful) {
@@ -87,9 +154,9 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleOnClick = (): void => {
+  const handleSignUpRedirect = (): void => {
     onClose();
-    handleOpenModal();
+    handleOpenSignUpModal();
   };
 
   useEffect(() => {
@@ -101,9 +168,19 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
 
   return (
     <>
-      <ModalSignUp isOpen={openModal} onClose={handleCloseModal} />
+      {/* Sign-Up Modal */}
+      <ModalSignUp
+        isOpen={isSignUpModalOpen}
+        onClose={handleCloseSignUpModal}
+      />
 
-      <Modal open={isOpen} onClose={onClose}>
+      {/* Sign-In Modal */}
+      <Modal
+        open={isOpen}
+        onClose={onClose}
+        aria-labelledby="sign-in-modal"
+        aria-describedby="sign-in-modal-description"
+      >
         <Box
           sx={{
             position: "absolute",
@@ -122,12 +199,14 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
           <IconButton
             onClick={onClose}
             sx={{ position: "absolute", top: 8, right: 8 }}
+            aria-label="Close sign-in modal"
           >
             <CloseIcon />
           </IconButton>
 
           {/* Modal Title */}
           <Typography
+            id="sign-in-modal"
             textAlign="center"
             fontWeight="bold"
             fontSize="1.5em"
@@ -135,14 +214,19 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
           >
             Login to Get Started
           </Typography>
-          <Typography textAlign="center" color="text.secondary" mb={3}>
+          <Typography
+            id="sign-in-modal-description"
+            textAlign="center"
+            color="text.secondary"
+            mb={3}
+          >
             Welcome Back! Let’s Groove
           </Typography>
 
           {/* Social Media Login Buttons */}
           <Box display="flex" justifyContent="space-around" gap={1} mb={3}>
             <Button
-              // Uncomment and implement OAuth method
+              onClick={() => handleLoginWithOAuth("facebook")}
               variant="contained"
               size="large"
               sx={{
@@ -155,7 +239,7 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
               <FaFacebook style={{ fontSize: "24px" }} />
             </Button>
             <Button
-              // Uncomment and implement OAuth method
+              onClick={() => handleLoginWithOAuth("google")}
               variant="contained"
               size="large"
               sx={{
@@ -168,7 +252,7 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
               <FaGoogle style={{ fontSize: "24px" }} />
             </Button>
             <Button
-              // Uncomment and implement OAuth method
+              onClick={() => handleLoginWithOAuth("github")}
               variant="contained"
               size="large"
               sx={{
@@ -186,7 +270,7 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
             OR
           </Typography>
 
-          {/* Input Form */}
+          {/* Form */}
           <form onSubmit={handleSubmit(handleOnSubmit)}>
             {/* Email Input */}
             <Controller
@@ -277,16 +361,18 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
 
           <Typography
             textAlign="center"
-            display={"flex"}
-            alignItems={"center"}
-            justifyContent={"center"}
             mt={2}
             fontSize="0.9rem"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 1,
+            }}
           >
             Don’t have an account?{" "}
             <Button
-              onClick={handleOnClick}
-              color="primary.min"
+              onClick={handleSignUpRedirect}
               sx={{
                 textDecoration: "none",
                 textTransform: "none",
