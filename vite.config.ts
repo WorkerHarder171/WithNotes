@@ -13,6 +13,11 @@ const config: UserConfig = defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom'],
   },
+  server: {
+    mimeTypes: {
+      '.js': 'application/javascript',
+    },
+  },
 });
 
 export default config;
