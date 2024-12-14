@@ -26,7 +26,7 @@ interface ModalSignInProps {
 interface FormData {
   email: string;
   password: string;
-  remember?: boolean;
+  remember: boolean;
 }
 
 const ModalSignIn: React.FC<ModalSignInProps> = ({
@@ -63,12 +63,11 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({
   const handleLoginWithEmail = async (data: FormData): Promise<boolean> => {
     try {
       const { email, password, remember } = data;
-      const { data: loginResponse, error } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
+      const { data: loginResponse, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
       if (error) {
         setErrorMessage(error.message);
         console.error("Login failed:", error.message);
