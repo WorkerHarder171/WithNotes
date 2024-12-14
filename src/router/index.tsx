@@ -1,8 +1,8 @@
 import { Routes, Route } from "react-router-dom";
+import { PrivateRoute } from "./private-route";
 import { LayoutDashboardRoot } from "@/layout/LayoutDashboardRoot";
 import AccessPages from "@/pages/AccessPages";
 import LandingPage from "@/pages/LandingPage";
-import { PrivateRoute } from "./private-route";
 import Unauthorized from "@/error/Unauthorized";
 import NotFound from "@/error/NotFound";
 import Profile from "@/pages/Profile";

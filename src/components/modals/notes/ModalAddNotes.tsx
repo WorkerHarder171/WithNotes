@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 interface ModalAddNotesProps {
   isOpen: boolean;
   onClose: () => void;
+  onDataUpdate: () => void;
 }
 
 interface FormData {
@@ -19,6 +20,7 @@ interface FormData {
 export default function ModalAddNotes({
   isOpen,
   onClose,
+  onDataUpdate,
 }: ModalAddNotesProps): JSX.Element {
   const {
     handleSubmit,
@@ -29,18 +31,24 @@ export default function ModalAddNotes({
 
   const [userEmail, setUserEmail] = useState<string>("");
 
+  const getUserEmail = async () => {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+    if (user) {
+      setUserEmail(user.email || "");
+    }
+    if (error) {
+      console.error("Error fetching user:", error.message);
+    }
+  };
+
   useEffect(() => {
-    const getUserEmail = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (user) {
-        setUserEmail(user.email || "");
-      }
-      if (error) {
-        console.error("Error fetching user:", error.message);
-      }
-    };
     getUserEmail();
   }, []);
+
+
 
   const handleOnSubmit = async (data: FormData): Promise<void> => {
     try {
@@ -53,17 +61,20 @@ export default function ModalAddNotes({
           created_at: new Date(),
         },
       ]);
-
+  
       if (error) {
         console.error("Error inserting notes:", error.message);
         return;
       }
+  
       reset();
       onClose();
+      onDataUpdate(); 
     } catch (err) {
       console.error("Error inserting notes:", err);
     }
   };
+  
 
   useEffect(() => {
     if (!isOpen) {
@@ -93,7 +104,12 @@ export default function ModalAddNotes({
         >
           <CloseIcon />
         </IconButton>
-        <Typography textAlign="center" fontWeight="bold" fontSize="1.5em" mb={1}>
+        <Typography
+          textAlign="center"
+          fontWeight="bold"
+          fontSize="1.5em"
+          mb={1}
+        >
           Add a New Note
         </Typography>
 

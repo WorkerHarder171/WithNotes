@@ -17,15 +17,19 @@ interface Note {
   created_at: string;
 }
 
-export default function Notes(): JSX.Element {
+const Notes: React.FC = () => {
   // State for notes and selected note
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [isModalOpen, setModalOpen] = useState<boolean>(false);
+  const [isUpdate, setUpdate] = useState<boolean>(false);
 
   // Close modal handler
   const handleCloseModal = (): void => setModalOpen(false);
-
+  const handleOnUpdate = (): void => {
+    setUpdate(true); 
+  };
+  
   // Fetch notes data from Supabase
   const getData = async (): Promise<void> => {
     try {
@@ -49,7 +53,8 @@ export default function Notes(): JSX.Element {
           console.error("Error fetching notes:", notesError.message);
         } else {
           console.log("Fetched notes:", notesData);
-          setNotes(notesData || []);
+          handleOnUpdate();
+          setNotes(notesData);
         }
       }
     } catch (error) {
@@ -62,9 +67,17 @@ export default function Notes(): JSX.Element {
     setSelectedNoteId(id === selectedNoteId ? null : id);
   };
 
+  // Fetch data on component mount and update state on note changes
   useEffect(() => {
     getData();
   }, []);
+
+  useEffect(() => {
+    if (isUpdate) {
+      getData(); 
+      setUpdate(false);
+    }
+  }, [isUpdate]);
 
   return (
     <>
@@ -81,7 +94,9 @@ export default function Notes(): JSX.Element {
 
           {/* Notes Info */}
           <div className="flex justify-between items-center mt-10">
-            <p className="text-xl font-semibold text-[#799CFF]">{notes.length} Notes</p>
+            <p className="text-xl font-semibold text-[#799CFF]">
+              {notes.length} Notes
+            </p>
             <button
               onClick={() => console.log("Search button clicked")}
               className="px-4 py-2 text-white bg-[#799CFF] rounded-[10px] hover:bg-[#668BFF]"
@@ -114,7 +129,6 @@ export default function Notes(): JSX.Element {
                 className={selectedNoteId ? "block" : "hidden"}
                 title={note.title}
                 lead={note.desc}
-                time={note.time}
                 key={note.id}
               />
             ))}
@@ -123,7 +137,13 @@ export default function Notes(): JSX.Element {
       </div>
 
       {/* Modal for Adding Notes */}
-      <ModalAddNotes isOpen={isModalOpen} onClose={handleCloseModal} />
+      <ModalAddNotes
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onDataUpdate={handleOnUpdate}
+      />
     </>
   );
-}
+};
+
+export default Notes;

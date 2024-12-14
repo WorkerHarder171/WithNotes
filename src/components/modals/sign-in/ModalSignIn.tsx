@@ -9,17 +9,18 @@ import {
   Checkbox,
   FormControlLabel,
 } from "@mui/material";
-import { FaGoogle, FaFacebook, FaGithub } from "react-icons/fa";
 import CloseIcon from "@mui/icons-material/Close";
 import { useEffect, useState } from "react";
 import { supabase } from "@/config/supabase/supabaseClient";
 import { authService } from "@/config/auth";
 import { useNavigate } from "react-router-dom";
+import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import ModalSignUp from "../sign-up/ModalSignUp";
 
 interface ModalSignInProps {
   isOpen: boolean;
   onClose: () => void;
+  onAuthorized: () => void;
 }
 
 interface FormData {
@@ -28,7 +29,11 @@ interface FormData {
   remember?: boolean;
 }
 
-const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
+const ModalSignIn: React.FC<ModalSignInProps> = ({
+  isOpen,
+  onClose,
+  onAuthorized,
+}) => {
   const {
     handleSubmit,
     control,
@@ -39,82 +44,25 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSignUpModalOpen, setSignUpModalOpen] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<"password" | "text">(
+    "password"
+  );
 
+  // Handle visibility toggle for password
+  const handleTogglePasswordVisibility = (): void => {
+    setShowPassword((prevType) =>
+      prevType === "password" ? "text" : "password"
+    );
+  };
+
+  // Open/Close Sign Up Modal
   const handleOpenSignUpModal = (): void => setSignUpModalOpen(true);
   const handleCloseSignUpModal = (): void => setSignUpModalOpen(false);
 
-  const checkIfUserExists = async (email: string) => {
-    const { data, error } = await supabase
-      .from("user")
-      .select("email")
-      .eq("email", email)
-      .single();
-
-    if (error || !data) {
-      setSignUpModalOpen(true);
-      return false;
-    }
-    return true;
-  };
-
-const chekIfCanLogin = async(email:string) => {
-
-
-}
-
-  const handleLoginWithOAuth = async (
-    provider: "google" | "github" | "facebook"
-  ): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        },
-      });
-
-      if (error) {
-        setErrorMessage(error.message);
-        console.error("OAuth login failed:", error.message);
-        return false;
-      }
-
-      if (data?.user) {
-        const userExists = await checkIfUserExists(data.user.email);
-        if (!userExists) {
-          return false;
-        }
-      }
-
-      const { data: sessionData, error: sessionError } =
-        await supabase.auth.getSession();
-
-      if (sessionError || !sessionData?.session) {
-        setErrorMessage(sessionError?.message || "Failed to retrieve session.");
-        console.error("Failed to retrieve session:", sessionError?.message);
-        return false;
-      }
-      const { access_token, refresh_token, user } = sessionData.session;
-      authService.storeCredentialsToken({
-        token: access_token,
-        refreshToken: refresh_token,
-        oauthAccessToken: user?.email ?? "",
-      });
-
-      console.log("OAuth login successful:", sessionData);
-      navigate("/dashboard");
-      return true;
-    } catch (err) {
-      setErrorMessage("Unexpected error during OAuth login.");
-      console.error("OAuth login error:", err);
-      return false;
-    }
-  };
-
-  // Function to handle login with email and password
+  // Handle login
   const handleLoginWithEmail = async (data: FormData): Promise<boolean> => {
     try {
-      const { email, password } = data;
+      const { email, password, remember } = data;
       const { data: loginResponse, error } =
         await supabase.auth.signInWithPassword({
           email,
@@ -129,6 +77,16 @@ const chekIfCanLogin = async(email:string) => {
 
       if (loginResponse.session) {
         const { access_token, refresh_token } = loginResponse.session;
+
+        // Save token based on "Remember Me"
+        if (remember) {
+          localStorage.setItem("access_token", access_token);
+          localStorage.setItem("refresh_token", refresh_token);
+        } else {
+          sessionStorage.setItem("access_token", access_token);
+          sessionStorage.setItem("refresh_token", refresh_token);
+        }
+
         authService.storeCredentialsToken({
           token: access_token,
           refreshToken: refresh_token,
@@ -137,6 +95,7 @@ const chekIfCanLogin = async(email:string) => {
 
         console.log("Login successful:", loginResponse);
         navigate("/dashboard");
+        onAuthorized();
         return true;
       }
     } catch (err) {
@@ -154,11 +113,7 @@ const chekIfCanLogin = async(email:string) => {
     }
   };
 
-  const handleSignUpRedirect = (): void => {
-    onClose();
-    handleOpenSignUpModal();
-  };
-
+  // Reset form and error message on modal close
   useEffect(() => {
     if (!isOpen) {
       reset();
@@ -223,53 +178,6 @@ const chekIfCanLogin = async(email:string) => {
             Welcome Back! Let’s Groove
           </Typography>
 
-          {/* Social Media Login Buttons */}
-          <Box display="flex" justifyContent="space-around" gap={1} mb={3}>
-            <Button
-              onClick={() => handleLoginWithOAuth("facebook")}
-              variant="contained"
-              size="large"
-              sx={{
-                borderRadius: "20px",
-                minWidth: "50px",
-                height: "50px",
-                bgcolor: "#1877F2",
-              }}
-            >
-              <FaFacebook style={{ fontSize: "24px" }} />
-            </Button>
-            <Button
-              onClick={() => handleLoginWithOAuth("google")}
-              variant="contained"
-              size="large"
-              sx={{
-                borderRadius: "20px",
-                minWidth: "50px",
-                height: "50px",
-                bgcolor: "#DB4437",
-              }}
-            >
-              <FaGoogle style={{ fontSize: "24px" }} />
-            </Button>
-            <Button
-              onClick={() => handleLoginWithOAuth("github")}
-              variant="contained"
-              size="large"
-              sx={{
-                borderRadius: "20px",
-                minWidth: "50px",
-                height: "50px",
-                bgcolor: "#333",
-              }}
-            >
-              <FaGithub style={{ fontSize: "24px" }} />
-            </Button>
-          </Box>
-
-          <Typography textAlign="center" color="text.secondary" mb={2}>
-            OR
-          </Typography>
-
           {/* Form */}
           <form onSubmit={handleSubmit(handleOnSubmit)}>
             {/* Email Input */}
@@ -296,23 +204,37 @@ const chekIfCanLogin = async(email:string) => {
             />
 
             {/* Password Input */}
-            <Controller
-              name="password"
-              control={control}
-              rules={{ required: "Password is required" }}
-              render={({ field }) => (
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  label="Password"
-                  type="password"
-                  error={!!errors.password}
-                  helperText={errors.password?.message}
-                  {...field}
-                />
-              )}
-            />
+            <div className="wrapper relative">
+              <Controller
+                name="password"
+                control={control}
+                rules={{ required: "Password is required" }}
+                render={({ field }) => (
+                  <TextField
+                    fullWidth
+                    margin="normal"
+                    label="Password"
+                    type={showPassword}
+                    error={!!errors.password}
+                    helperText={errors.password?.message}
+                    {...field}
+                  />
+                )}
+              />
+              <button
+                type="button"
+                onClick={handleTogglePasswordVisibility}
+                className="wrapper-icon flex absolute right-5 top-8"
+              >
+                {showPassword === "password" ? (
+                  <FaRegEyeSlash size={24} />
+                ) : (
+                  <FaRegEye size={24} />
+                )}
+              </button>
+            </div>
 
+            {/* Remember Me */}
             <Box
               display="flex"
               justifyContent="space-between"
@@ -372,7 +294,7 @@ const chekIfCanLogin = async(email:string) => {
           >
             Don’t have an account?{" "}
             <Button
-              onClick={handleSignUpRedirect}
+              onClick={handleOpenSignUpModal}
               sx={{
                 textDecoration: "none",
                 textTransform: "none",

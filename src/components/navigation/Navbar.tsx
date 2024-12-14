@@ -6,20 +6,31 @@ import { Avatar, Button, Menu, MenuItem } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/config/supabase/supabaseClient";
 import { FaPlus } from "react-icons/fa6";
-import ModalSignIn from "@/components/modals/sign-in/ModalSignIn";
 import ModalAddNotes from "@/components/modals/notes/ModalAddNotes";
+import ModalSignIn from "@/components/modals/sign-in/ModalSignIn";
 
 export default function Navbar(): JSX.Element {
   // State Management
-  const [user, setUser] = useState<{ username: string; pictures: string } | null>(null);
+  const [user, setUser] = useState<{
+    username: string;
+    pictures: string;
+  } | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean>(authService.isAuthorized());
-  const [currentPath, setCurrentPath] = useState<string>(window.location.hash.substring(1) || "all");
+
+  const handleAutrorized = async (): Promise<void> => {
+    const isAuth = await authService.isAuthorized();
+    setIsAuthorized(isAuth);
+  };
+  // State for current path
+  const [currentPath, setCurrentPath] = useState<string>(
+    window.location.hash.substring(1) || "all"
+  );
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
 
   // Separate state for modals
-  const [isSignInModalOpen, setSignInModalOpen] = useState<boolean>(false);
   const [isAddNotesModalOpen, setAddNotesModalOpen] = useState<boolean>(false);
+  const [isSignInModalOpen, setSignInModalOpen] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
@@ -27,14 +38,16 @@ export default function Navbar(): JSX.Element {
   const getAvatarInitials = (username: string): string => {
     const nameParts = username.split(" ");
     const firstInitial = nameParts[0].charAt(0).toUpperCase();
-    const lastInitial = nameParts.length > 1 ? nameParts[1].charAt(0).toUpperCase() : "";
+    const lastInitial =
+      nameParts.length > 1 ? nameParts[1].charAt(0).toUpperCase() : "";
     return `${firstInitial}${lastInitial}`;
   };
 
   // Fetch user data
   const getUser = async (): Promise<void> => {
     try {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
+      const { data: authData, error: authError } =
+        await supabase.auth.getUser();
 
       if (authError) {
         console.error("Error fetching user auth data:", authError.message);
@@ -51,6 +64,7 @@ export default function Navbar(): JSX.Element {
         if (error) {
           console.error("Error fetching user profile:", error.message);
         } else {
+          setIsAuthorized(true);
           setUser(data);
         }
       }
@@ -85,6 +99,7 @@ export default function Navbar(): JSX.Element {
   useEffect(() => {
     if (isAuthorized) {
       getUser();
+      setIsAuthorized(true);
     }
 
     const handleHashChange = () => {
@@ -122,9 +137,13 @@ export default function Navbar(): JSX.Element {
               alt="Profile"
             />
           ) : (
-            <Avatar>{user?.username ? getAvatarInitials(user.username) : "?"}</Avatar>
+            <Avatar>
+              {user?.username ? getAvatarInitials(user.username) : "?"}
+            </Avatar>
           )}
-          <p className="name-profile font-medium text-xl">{user?.username || ""}</p>
+          <p className="name-profile font-medium text-xl">
+            {user?.username || ""}
+          </p>
         </div>
 
         {/* Navigation Links */}
@@ -184,7 +203,9 @@ export default function Navbar(): JSX.Element {
             </Button>
           ) : (
             <button
-              onClick={() => setSignInModalOpen(true)}
+              onClick={() => {
+                setSignInModalOpen(true);
+              }}
               className="nav-link bg-[#0A66C2] text-white px-5 py-2 rounded-[10px] flex items-center gap-3 duration-300"
             >
               <IoLogIn />
@@ -209,8 +230,15 @@ export default function Navbar(): JSX.Element {
       </nav>
 
       {/* Modals */}
-      <ModalSignIn isOpen={isSignInModalOpen} onClose={() => setSignInModalOpen(false)} />
-      <ModalAddNotes isOpen={isAddNotesModalOpen} onClose={() => setAddNotesModalOpen(false)} />
+      <ModalSignIn
+        isOpen={isSignInModalOpen}
+        onClose={() => setSignInModalOpen(false)}
+        onAuthorized={handleAutrorized}
+      />
+      <ModalAddNotes
+        isOpen={isAddNotesModalOpen}
+        onClose={() => setAddNotesModalOpen(false)}
+      />
     </>
   );
 }
