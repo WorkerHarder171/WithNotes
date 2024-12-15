@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { AuthService } from "@/services/AuthService";
+import { AuthService } from "@/services";
 
 interface ProtectedRouteProps {
   children: React.ReactElement;

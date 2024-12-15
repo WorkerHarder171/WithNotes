@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { Button, TextField } from "@mui/material";
 import { supabase } from "@/config/supabase/supabaseClient";
 interface CardEditProps extends React.HTMLAttributes<HTMLDivElement> {

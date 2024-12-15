@@ -15,7 +15,9 @@ export default function Navbar(): JSX.Element {
     username: string;
     pictures: string;
   } | null>(null);
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(authService.isAuthorized());
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(
+    authService.isAuthorized()
+  );
 
   const handleAutrorized = async (): Promise<void> => {
     const isAuth = await authService.isAuthorized();
@@ -235,9 +237,13 @@ export default function Navbar(): JSX.Element {
         onClose={() => setSignInModalOpen(false)}
         onAuthorized={handleAutrorized}
       />
+
       <ModalAddNotes
         isOpen={isAddNotesModalOpen}
         onClose={() => setAddNotesModalOpen(false)}
+        onDataUpdate={() => {
+          console.log("Data updated!");
+        }}
       />
     </>
   );

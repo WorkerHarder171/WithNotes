@@ -43,12 +43,11 @@ export default function CardDefault({
       {...props}
     >
       <div className="flex items-center gap-5">
-        <div className={`wrapper-img w-4/12 my-auto rounded-[10px] min-w-[150px]`}
-        style={{ backgroundColor: randomBg }}>
-          <img
-            className={` h-[150px] object-cover rounded-10px `}
-            src={data}
-          />
+        <div
+          className={`wrapper-img w-4/12 my-auto rounded-[10px] min-w-[150px]`}
+          style={{background: `${randomBg}` }}
+        >
+          <img className={` h-[150px] object-cover rounded-10px `} src={data} />
         </div>
         <div className="wrapper-text w-8/12">
           <div className="card-header">

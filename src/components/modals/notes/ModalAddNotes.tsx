@@ -12,17 +12,18 @@ interface ModalAddNotesProps {
   onDataUpdate: () => void;
 }
 
+
 interface FormData {
   title: string;
   desc: string;
   
 }
 
-export default function ModalAddNotes({
+const ModalAddNotes: React.FC<ModalAddNotesProps> = ({
   isOpen,
   onClose,
   onDataUpdate,
-}: ModalAddNotesProps): JSX.Element {
+}) =>{
   // Form handling
   const {
     handleSubmit,
@@ -71,7 +72,7 @@ export default function ModalAddNotes({
       reset();
       onClose();
       onDataUpdate();
-    } catch (err) {
+    } catch (err: any) {
       throw new Error(err.message || "Error inserting notes");
     }
   };
@@ -82,16 +83,6 @@ export default function ModalAddNotes({
     }
   }, [isOpen, reset]);
 
-
-  const handleFileUpload = async () => {
-    try{
-      const filePath = `images/${uuidv4()}_${selectedFile.name}`;
-      const {error} = await supabase.storage.from("images").upload(filePath, selectedFile);
-    }
-    catch (error) {
-      throw new Error(error.message || "Error uploading file");
-    }
-  }
   return (
     <Modal open={isOpen} onClose={onClose}>
       <Box
@@ -172,3 +163,5 @@ export default function ModalAddNotes({
     </Modal>
   );
 }
+
+export default ModalAddNotes;

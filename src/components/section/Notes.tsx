@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/config/supabase/supabaseClient";
 import { IoMdSearch } from "react-icons/io";
 import ModalAddNotes from "@/components/modals/notes/ModalAddNotes";
-import { CircularProgress } from "@mui/material";
 
 // Define type for notes
 interface Note {
@@ -57,7 +56,7 @@ const Notes: React.FC = () => {
           setNotes(notesData);
         }
       }
-    } catch (error) {
+    } catch (error:any) {
       throw new Error(error.message || "Error fetching notes");
     }
   };
