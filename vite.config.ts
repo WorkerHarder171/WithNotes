@@ -14,9 +14,6 @@ const config: UserConfig = defineConfig({
     include: ["react", "react-dom"],
   },
   server: {
-    mimeTypes: {
-      ".js": "application/javascript",
-    },
   },
 });
 
