@@ -75,6 +75,7 @@ const Notes: React.FC = () => {
   useEffect(() => {
     if (isUpdate) {
       getData();
+      setUpdate(false);
     }
   }, [isUpdate]);
 
@@ -83,6 +84,12 @@ const Notes: React.FC = () => {
       setIsLoading(true);
     }, 1000);
   }, []);
+
+  // useEffect(() => {
+  //   if(selectedNoteId){
+  //     console.log("mama",selectedNoteId)
+  //   }
+  // }, [selectedNoteId]);
 
   return (
     <>
@@ -117,7 +124,7 @@ const Notes: React.FC = () => {
                 <CardDefault
                   onClick={() => handleOnClick(note.id)}
                   title={note.title}
-                  lead={note.desc}
+                  desc={note.desc}
                   time={note.time}
                   date={note.created_at}
                   key={note.id}
@@ -135,7 +142,8 @@ const Notes: React.FC = () => {
               <CardEdit
                 className={selectedNoteId ? "block" : "hidden"}
                 title={note.title}
-                lead={note.desc}
+                desc={note.desc}
+                userId={note.id}
                 key={note.id}
               />
             ))}

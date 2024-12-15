@@ -1,17 +1,19 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button, TextField } from "@mui/material";
-
+import { supabase } from "@/config/supabase/supabaseClient";
 interface CardEditProps extends React.HTMLAttributes<HTMLDivElement> {
+  userId: string;
   title: string;
-  lead: string;
+  desc: string;
   time?: string;
   date?: Date;
   className?: string;
 }
 
 export default function CardEdit({
+  userId: initialId,
   title: initialTitle,
-  lead: initialLead,
+  desc: initialDesc,
   className,
   ...props
 }: CardEditProps) {
@@ -19,24 +21,37 @@ export default function CardEdit({
 
   // State for managing the card's content
   const [isEditing, setIsEditing] = useState(false);
+  const [userId, setUserId] = useState(initialId);
   const [title, setTitle] = useState(initialTitle);
-  const [lead, setLead] = useState(initialLead);
+  const [desc, setDesc] = useState(initialDesc);
 
   // Handlers for toggling edit mode
   const toggleEdit = () => {
     setIsEditing((prev) => !prev);
+    setUserId(initialId);
   };
 
-  const saveChanges = async():Promise<void> => {
+  const saveChanges = async (): Promise<void> => {
     setIsEditing(false);
-    const {data, error} =  await supabase.from("notes").update({title, lead}).eq("id", id);
+    const { data, error } = await supabase
+      .from("notes")
+      .update({ title, desc })
+      .eq("id", userId);
 
-    if(error) throw new Error(error.message || "Failed to update note");
+    if (error) {
+      console.log(error.message + " " + id);
+    }
 
-    if(data){
-      console.log("Note updated successfully");
+    if (data) {
+      alert("Note updated successfully");
     }
   };
+
+  // useEffect(() => {
+  //   if (userId) {
+  //     console.log("mee", userId);
+  //   }
+  // });
 
   return (
     <div
@@ -70,8 +85,8 @@ export default function CardEdit({
       <div className="card-body mt-2">
         {isEditing ? (
           <TextField
-            value={lead}
-            onChange={(e) => setLead(e.target.value)}
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
             variant="outlined"
             multiline
             fullWidth
@@ -83,7 +98,7 @@ export default function CardEdit({
             }}
           />
         ) : (
-          <p className="py-5">{lead}</p>
+          <p className="py-5">{desc}</p>
         )}
       </div>
       <div className="card-footer absolute bottom-7 right-5 gap-3">

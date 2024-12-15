@@ -1,23 +1,20 @@
 import { useId } from "react";
 import data from "@/assets/data.png";
-import laptop from "@/assets/laptop.png";
-import notes from "@/assets/notes.png";
 
 interface CardDefaultProps extends React.HTMLAttributes<HTMLDivElement> {
   title: string;
-  lead: string;
+  desc: string;
   time?: string;
   date?: string;
   className?: string;
 }
 
-export const image = [{ img: data }, { img: laptop }, { img: notes }];
-export const bg = ["#BAB3FF", "#FFD27D"];
+export const bg = ["#BAB3FF"];
 
 export default function CardDefault({
   onClick,
   title,
-  lead,
+  desc,
   date,
   className,
   ...props
@@ -36,8 +33,7 @@ export default function CardDefault({
     return `${day}-${month}-${year}`;
   };
 
-  const randomImg = image[Math.floor(Math.random() * image.length)];
-  const randomBg = bg[Math.floor(Math.random() * bg.length)];
+  const randomBg = bg;
 
   return (
     <div
@@ -51,7 +47,7 @@ export default function CardDefault({
         style={{ backgroundColor: randomBg }}>
           <img
             className={` h-[150px] object-cover rounded-10px `}
-            src={randomImg.img}
+            src={data}
           />
         </div>
         <div className="wrapper-text w-8/12">
@@ -60,9 +56,9 @@ export default function CardDefault({
               {title}
             </p>
             <p className="lead font-thin text-lg max-w-xl my-3">
-              {lead.length > titleLength
-                ? lead.slice(0, titleLength) + "..."
-                : lead}
+              {desc.length > titleLength
+                ? desc.slice(0, titleLength) + "..."
+                : desc}
             </p>
           </div>
           <div className="card-footer">
