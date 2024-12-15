@@ -9,17 +9,22 @@ import { useEffect, useState } from "react";
 interface ModalAddNotesProps {
   isOpen: boolean;
   onClose: () => void;
+  onDataUpdate: () => void;
 }
+
 
 interface FormData {
   title: string;
   desc: string;
+  
 }
 
-export default function ModalAddNotes({
+const ModalAddNotes: React.FC<ModalAddNotesProps> = ({
   isOpen,
   onClose,
-}: ModalAddNotesProps): JSX.Element {
+  onDataUpdate,
+}) =>{
+  // Form handling
   const {
     handleSubmit,
     control,
@@ -29,19 +34,25 @@ export default function ModalAddNotes({
 
   const [userEmail, setUserEmail] = useState<string>("");
 
+  // Get user email
+  const getUserEmail = async () => {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+    if (user) {
+      setUserEmail(user.email || "");
+    }
+    if (error) {
+      throw new Error(error.message || "Error fetching user");
+    }
+  };
+
   useEffect(() => {
-    const getUserEmail = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (user) {
-        setUserEmail(user.email || "");
-      }
-      if (error) {
-        console.error("Error fetching user:", error.message);
-      }
-    };
     getUserEmail();
   }, []);
 
+  // Handle form submit
   const handleOnSubmit = async (data: FormData): Promise<void> => {
     try {
       const { error } = await supabase.from("notes").insert([
@@ -55,13 +66,14 @@ export default function ModalAddNotes({
       ]);
 
       if (error) {
-        console.error("Error inserting notes:", error.message);
-        return;
+        throw new Error(error.message);
       }
+
       reset();
       onClose();
-    } catch (err) {
-      console.error("Error inserting notes:", err);
+      onDataUpdate();
+    } catch (err: any) {
+      throw new Error(err.message || "Error inserting notes");
     }
   };
 
@@ -93,7 +105,12 @@ export default function ModalAddNotes({
         >
           <CloseIcon />
         </IconButton>
-        <Typography textAlign="center" fontWeight="bold" fontSize="1.5em" mb={1}>
+        <Typography
+          textAlign="center"
+          fontWeight="bold"
+          fontSize="1.5em"
+          mb={1}
+        >
           Add a New Note
         </Typography>
 
@@ -146,3 +163,5 @@ export default function ModalAddNotes({
     </Modal>
   );
 }
+
+export default ModalAddNotes;

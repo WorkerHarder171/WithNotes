@@ -9,27 +9,31 @@ import {
   Checkbox,
   FormControlLabel,
 } from "@mui/material";
-import { FaGoogle, FaFacebook, FaGithub } from "react-icons/fa";
 import CloseIcon from "@mui/icons-material/Close";
 import { useEffect, useState } from "react";
 import { supabase } from "@/config/supabase/supabaseClient";
 import { authService } from "@/config/auth";
 import { useNavigate } from "react-router-dom";
-import { AuthError, Session } from "@supabase/supabase-js";
+import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import ModalSignUp from "../sign-up/ModalSignUp";
 
 interface ModalSignInProps {
   isOpen: boolean;
   onClose: () => void;
+  onAuthorized: () => void;
 }
 
 interface FormData {
   email: string;
   password: string;
-  remember?: boolean;
+  remember: boolean;
 }
 
-const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
+const ModalSignIn: React.FC<ModalSignInProps> = ({
+  isOpen,
+  onClose,
+  onAuthorized,
+}) => {
   const {
     handleSubmit,
     control,
@@ -39,37 +43,58 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
 
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [openModal, setOpenModal] = useState<boolean>(false);
+  const [isSignUpModalOpen, setSignUpModalOpen] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<"password" | "text">(
+    "password"
+  );
 
-  const handleOpenModal = (): void => setOpenModal(true);
-  const handleCloseModal = (): void => setOpenModal(false);
+  // Handle visibility toggle for password
+  const handleTogglePasswordVisibility = (): void => {
+    setShowPassword((prevType) =>
+      prevType === "password" ? "text" : "password"
+    );
+  };
 
+  // Open/Close Sign Up Modal
+  const handleOpenSignUpModal = (): void => setSignUpModalOpen(true);
+  const handleCloseSignUpModal = (): void => setSignUpModalOpen(false);
+
+  // Handle login
   const handleLoginWithEmail = async (data: FormData): Promise<boolean> => {
     try {
-      const { email, password } = data;
-      const {
-        data: session,
-        error,
-      }: { data: Session | null; error: AuthError | null } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
+      const { email, password, remember } = data;
+      const { data: loginResponse, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
       if (error) {
         setErrorMessage(error.message);
         console.error("Login failed:", error.message);
         return false;
       }
 
-      if (session) {
+      if (loginResponse.session) {
+        const { access_token, refresh_token } = loginResponse.session;
+
+        // Save token based on "Remember Me"
+        if (remember) {
+          localStorage.setItem("access_token", access_token);
+          localStorage.setItem("refresh_token", refresh_token);
+        } else {
+          sessionStorage.setItem("access_token", access_token);
+          sessionStorage.setItem("refresh_token", refresh_token);
+        }
+
         authService.storeCredentialsToken({
-          token: session.session?.access_token!,
-          refreshToken: session.session?.refresh_token!,
-          oauthAccessToken: session.user?.email!,
+          token: access_token,
+          refreshToken: refresh_token,
+          oauthAccessToken: loginResponse.user?.email ?? "",
         });
-        console.log("Login successful:", session);
+
+        console.log("Login successful:", loginResponse);
         navigate("/dashboard");
+        onAuthorized();
         return true;
       }
     } catch (err) {
@@ -79,7 +104,7 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
     return false;
   };
 
-  
+  // Submit handler
   const handleOnSubmit = async (data: FormData): Promise<void> => {
     const isLoginSuccessful = await handleLoginWithEmail(data);
     if (isLoginSuccessful) {
@@ -87,11 +112,7 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleOnClick = (): void => {
-    onClose();
-    handleOpenModal();
-  };
-
+  // Reset form and error message on modal close
   useEffect(() => {
     if (!isOpen) {
       reset();
@@ -101,9 +122,19 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
 
   return (
     <>
-      <ModalSignUp isOpen={openModal} onClose={handleCloseModal} />
+      {/* Sign-Up Modal */}
+      <ModalSignUp
+        isOpen={isSignUpModalOpen}
+        onClose={handleCloseSignUpModal}
+      />
 
-      <Modal open={isOpen} onClose={onClose}>
+      {/* Sign-In Modal */}
+      <Modal
+        open={isOpen}
+        onClose={onClose}
+        aria-labelledby="sign-in-modal"
+        aria-describedby="sign-in-modal-description"
+      >
         <Box
           sx={{
             position: "absolute",
@@ -122,12 +153,14 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
           <IconButton
             onClick={onClose}
             sx={{ position: "absolute", top: 8, right: 8 }}
+            aria-label="Close sign-in modal"
           >
             <CloseIcon />
           </IconButton>
 
           {/* Modal Title */}
           <Typography
+            id="sign-in-modal"
             textAlign="center"
             fontWeight="bold"
             fontSize="1.5em"
@@ -135,58 +168,16 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
           >
             Login to Get Started
           </Typography>
-          <Typography textAlign="center" color="text.secondary" mb={3}>
+          <Typography
+            id="sign-in-modal-description"
+            textAlign="center"
+            color="text.secondary"
+            mb={3}
+          >
             Welcome Back! Let’s Groove
           </Typography>
 
-          {/* Social Media Login Buttons */}
-          <Box display="flex" justifyContent="space-around" gap={1} mb={3}>
-            <Button
-              // Uncomment and implement OAuth method
-              variant="contained"
-              size="large"
-              sx={{
-                borderRadius: "20px",
-                minWidth: "50px",
-                height: "50px",
-                bgcolor: "#1877F2",
-              }}
-            >
-              <FaFacebook style={{ fontSize: "24px" }} />
-            </Button>
-            <Button
-              // Uncomment and implement OAuth method
-              variant="contained"
-              size="large"
-              sx={{
-                borderRadius: "20px",
-                minWidth: "50px",
-                height: "50px",
-                bgcolor: "#DB4437",
-              }}
-            >
-              <FaGoogle style={{ fontSize: "24px" }} />
-            </Button>
-            <Button
-              // Uncomment and implement OAuth method
-              variant="contained"
-              size="large"
-              sx={{
-                borderRadius: "20px",
-                minWidth: "50px",
-                height: "50px",
-                bgcolor: "#333",
-              }}
-            >
-              <FaGithub style={{ fontSize: "24px" }} />
-            </Button>
-          </Box>
-
-          <Typography textAlign="center" color="text.secondary" mb={2}>
-            OR
-          </Typography>
-
-          {/* Input Form */}
+          {/* Form */}
           <form onSubmit={handleSubmit(handleOnSubmit)}>
             {/* Email Input */}
             <Controller
@@ -212,23 +203,37 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
             />
 
             {/* Password Input */}
-            <Controller
-              name="password"
-              control={control}
-              rules={{ required: "Password is required" }}
-              render={({ field }) => (
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  label="Password"
-                  type="password"
-                  error={!!errors.password}
-                  helperText={errors.password?.message}
-                  {...field}
-                />
-              )}
-            />
+            <div className="wrapper relative">
+              <Controller
+                name="password"
+                control={control}
+                rules={{ required: "Password is required" }}
+                render={({ field }) => (
+                  <TextField
+                    fullWidth
+                    margin="normal"
+                    label="Password"
+                    type={showPassword}
+                    error={!!errors.password}
+                    helperText={errors.password?.message}
+                    {...field}
+                  />
+                )}
+              />
+              <button
+                type="button"
+                onClick={handleTogglePasswordVisibility}
+                className="wrapper-icon flex absolute right-5 top-8"
+              >
+                {showPassword === "password" ? (
+                  <FaRegEyeSlash size={24} />
+                ) : (
+                  <FaRegEye size={24} />
+                )}
+              </button>
+            </div>
 
+            {/* Remember Me */}
             <Box
               display="flex"
               justifyContent="space-between"
@@ -277,16 +282,18 @@ const ModalSignIn: React.FC<ModalSignInProps> = ({ isOpen, onClose }) => {
 
           <Typography
             textAlign="center"
-            display={"flex"}
-            alignItems={"center"}
-            justifyContent={"center"}
             mt={2}
             fontSize="0.9rem"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 1,
+            }}
           >
             Don’t have an account?{" "}
             <Button
-              onClick={handleOnClick}
-              color="primary.min"
+              onClick={handleOpenSignUpModal}
               sx={{
                 textDecoration: "none",
                 textTransform: "none",

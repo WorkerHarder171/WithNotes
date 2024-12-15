@@ -10,6 +10,8 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { supabase } from "@/config/supabase/supabaseClient";
 import { v4 as uuidv4 } from "uuid";
+import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
+import { useState } from "react";
 
 interface ModalSignUpProps {
   isOpen: boolean;
@@ -20,8 +22,9 @@ interface FormData {
   email: string;
   fullname: string;
   username: string;
-  birthday: Date;
+  birthday: string;
   password: string;
+  confirmPassword: string;
   phone: number;
   address: string;
 }
@@ -30,45 +33,71 @@ export default function ModalSignUp({ isOpen, onClose }: ModalSignUpProps) {
   const {
     handleSubmit,
     control,
+    getValues,
     formState: { errors },
   } = useForm<FormData>();
 
-  const handleOnSubmit = async (data: FormData): Promise<void> => {
-    const { user, error: authError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-    });
+  const [showPassword, setShowPassword] = useState<"password" | "text">(
+    "password"
+  );
+  const [showConfirmPassword, setShowConfirmPassword] = useState<
+    "password" | "text"
+  >("password");
 
-    if (authError) {
-      console.error("Error during authentication sign-up:", authError.message);
-      alert("Failed to register. Please try again.");
-      return;
-    }
+  const togglePasswordVisibility = (): void =>
+    setShowPassword((prevType) =>
+      prevType === "password" ? "text" : "password"
+    );
 
-    const { error: dbError } = await supabase.from("user").insert({
-      id: uuidv4(),
-      fullname: data.fullname,
-      username: data.username,
-      email: data.email,
-      phone: data.phone,
-      password: data.password,
-      birthday: data.birthday,
-      address: data.address,
-      created_at: new Date().toISOString(),
-      uid: user?.id,
-    });
+  const toggleConfirmPasswordVisibility = (): void =>
+    setShowConfirmPassword((prevType) =>
+      prevType === "password" ? "text" : "password"
+    );
 
-    if (dbError) {
-      console.error("Error inserting data:", dbError.message);
-      alert("Failed to save user data. Please try again.");
-      return;
-    }
-    console.log("aaaa", FormData);
-    console.log("User registered and data saved successfully");
-    onClose();
-    console.error("Error during sign-up:", error.message);
-    alert("An unexpected error occurred. Please try again.");
-  };
+    const handleOnSubmit = async (data: FormData): Promise<void> => {
+      try {
+        const { data: signUpData, error: authError } = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+        });
+    
+        if (authError) {
+          console.error("Error during sign-up:", authError.message);
+          alert("Failed to register. Please try again.");
+          return;
+        }
+    
+        const user = signUpData.user;
+    
+        if (!user) {
+          console.error("User data is null after sign-up.");
+          alert("Failed to retrieve user data. Please try again.");
+          return;
+        }
+    
+        const { error: dbError } = await supabase.from("user").insert({
+          id: uuidv4(),
+          fullname: data.fullname,
+          username: data.username,
+          email: data.email,
+          phone: data.phone,
+          password: data.password,
+          birthday: data.birthday,
+          address: data.address,
+          created_at: new Date().toISOString(),
+        });
+    
+        if (dbError) {
+          throw new Error(dbError.message);
+        }
+    
+        console.log("User registered successfully");
+        onClose();
+      } catch (error:any) {
+        throw new Error(error.message || "Error signing up");
+      }
+    };
+    
 
   return (
     <Modal open={isOpen} onClose={onClose}>
@@ -109,6 +138,7 @@ export default function ModalSignUp({ isOpen, onClose }: ModalSignUpProps) {
 
         {/* Input Form */}
         <form onSubmit={handleSubmit(handleOnSubmit)}>
+          {/* Fullname */}
           <Controller
             name="fullname"
             control={control}
@@ -125,6 +155,7 @@ export default function ModalSignUp({ isOpen, onClose }: ModalSignUpProps) {
             )}
           />
 
+          {/* Email and Username */}
           <Box display={"flex"} alignItems={"center"} gap={"10px"}>
             <Controller
               name="username"
@@ -157,7 +188,6 @@ export default function ModalSignUp({ isOpen, onClose }: ModalSignUpProps) {
                   fullWidth
                   margin="normal"
                   label="Email"
-                  type="email"
                   error={!!errors.email}
                   helperText={errors.email?.message}
                   {...field}
@@ -166,49 +196,74 @@ export default function ModalSignUp({ isOpen, onClose }: ModalSignUpProps) {
             />
           </Box>
 
-          {/* Password Inputs */}
+          {/* Password and Confirm Password */}
           <Box display={"flex"} alignItems={"center"} gap={"10px"}>
-            <Controller
-              name="password"
-              control={control}
-              rules={{ required: "Password is required" }}
-              render={({ field }) => (
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  label="Password"
-                  type="password"
-                  error={!!errors.password}
-                  helperText={errors.password?.message}
-                  {...field}
-                />
-              )}
-            />
+            <div className="wrapper relative w-full">
+              <Controller
+                name="password"
+                control={control}
+                rules={{ required: "Password is required" }}
+                render={({ field }) => (
+                  <TextField
+                    fullWidth
+                    margin="normal"
+                    label="Password"
+                    type={showPassword}
+                    error={!!errors.password}
+                    helperText={errors.password?.message}
+                    {...field}
+                  />
+                )}
+              />
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="wrapper-icon flex absolute right-5 top-8"
+              >
+                {showPassword === "password" ? (
+                  <FaRegEyeSlash size={24} />
+                ) : (
+                  <FaRegEye size={24} />
+                )}
+              </button>
+            </div>
 
-            {/* <Controller
-              name="confirmPassword"
-              control={control}
-              rules={{
-                required: "Confirm Password is required",
-                validate: (value) =>
-                  value === control._getWatch("password") ||
-                  "Passwords do not match",
-              }}
-              render={({ field }) => (
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  label="Confirm Password"
-                  type="password"
-                  error={!!errors.confirmPassword}
-                  helperText={errors.confirmPassword?.message}
-                  {...field}
-                />
-              )}
-            /> */}
+            <div className="wrapper relative w-full">
+              <Controller
+                name="confirmPassword"
+                control={control}
+                rules={{
+                  required: "Confirm Password is required",
+                  validate: (value) =>
+                    value === getValues("password") || "Passwords do not match",
+                }}
+                render={({ field }) => (
+                  <TextField
+                    fullWidth
+                    margin="normal"
+                    label="Confirm Password"
+                    type={showConfirmPassword}
+                    error={!!errors.confirmPassword}
+                    helperText={errors.confirmPassword?.message}
+                    {...field}
+                  />
+                )}
+              />
+              <button
+                type="button"
+                onClick={toggleConfirmPasswordVisibility}
+                className="wrapper-icon flex absolute right-5 top-8"
+              >
+                {showConfirmPassword === "password" ? (
+                  <FaRegEyeSlash size={24} />
+                ) : (
+                  <FaRegEye size={24} />
+                )}
+              </button>
+            </div>
           </Box>
 
-          {/* Other Fields */}
+          {/* Birthday */}
           <Controller
             name="birthday"
             control={control}
@@ -225,6 +280,7 @@ export default function ModalSignUp({ isOpen, onClose }: ModalSignUpProps) {
             )}
           />
 
+          {/* Address */}
           <Controller
             name="address"
             control={control}
@@ -241,6 +297,7 @@ export default function ModalSignUp({ isOpen, onClose }: ModalSignUpProps) {
             )}
           />
 
+          {/* Phone */}
           <Controller
             name="phone"
             control={control}
@@ -258,6 +315,7 @@ export default function ModalSignUp({ isOpen, onClose }: ModalSignUpProps) {
             )}
           />
 
+          {/* Submit Button */}
           <Button
             type="submit"
             variant="contained"

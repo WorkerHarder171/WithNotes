@@ -1,9 +1,9 @@
-import { LayoutDashboardContent } from "@/layout/LayoutDashboardContent";
+import { LayoutDashboardContent } from "../layout/LayoutDashboardContent";
 import { useEffect, useState } from "react";
 import { CircularProgress } from "@mui/material";
-import Notes from "@/components/section/Notes";
+import Profile from "@/components/section/Profile";
 
-export default function AccessPages(): JSX.Element {
+export default function AccessProfile(): JSX.Element {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
@@ -11,14 +11,17 @@ export default function AccessPages(): JSX.Element {
       setIsLoading(true);
     }, 1000);
   }, []);
+
   return (
     <LayoutDashboardContent>
       {isLoading ? (
-        <Notes />
+        <Profile />
       ) : (
-        <div className=" h-[600px] flex justify-center
-        items-center">
-          <CircularProgress size={60}/>
+        <div
+          className=" h-[600px] flex justify-center
+  items-center"
+        >
+          <CircularProgress size={60} />
         </div>
       )}
     </LayoutDashboardContent>
