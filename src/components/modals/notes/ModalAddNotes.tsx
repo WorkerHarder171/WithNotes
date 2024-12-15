@@ -40,7 +40,7 @@ const ModalAddNotes: React.FC<ModalAddNotesProps> = ({
       const {
         data,
         error,
-      } = await supabase.auth.getUser();
+      } = await supabase.from("user").select("email").single();
 
       if (error) {
         throw new Error(error.message);
