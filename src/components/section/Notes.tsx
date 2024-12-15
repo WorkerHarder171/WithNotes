@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/config/supabase/supabaseClient";
 import { IoMdSearch } from "react-icons/io";
 import ModalAddNotes from "@/components/modals/notes/ModalAddNotes";
+import { CircularProgress } from "@mui/material";
 
 // Define type for notes
 interface Note {
@@ -23,13 +24,14 @@ const Notes: React.FC = () => {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [isModalOpen, setModalOpen] = useState<boolean>(false);
   const [isUpdate, setUpdate] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Close modal handler
   const handleCloseModal = (): void => setModalOpen(false);
   const handleOnUpdate = (): void => {
-    setUpdate(true); 
+    setUpdate(true);
   };
-  
+
   // Fetch notes data from Supabase
   const getData = async (): Promise<void> => {
     try {
@@ -39,8 +41,7 @@ const Notes: React.FC = () => {
       } = await supabase.auth.getUser();
 
       if (authError) {
-        console.error("Error fetching user data:", authError.message);
-        return;
+        throw new Error(authError.message || "Error fetching user data");
       }
 
       if (user) {
@@ -50,15 +51,14 @@ const Notes: React.FC = () => {
           .eq("email", user.email);
 
         if (notesError) {
-          console.error("Error fetching notes:", notesError.message);
+          throw new Error(notesError.message || "Error fetching notes");
         } else {
-          console.log("Fetched notes:", notesData);
           handleOnUpdate();
           setNotes(notesData);
         }
       }
     } catch (error) {
-      console.error("Unexpected error fetching notes:", error);
+      throw new Error(error.message || "Error fetching notes");
     }
   };
 
@@ -74,16 +74,21 @@ const Notes: React.FC = () => {
 
   useEffect(() => {
     if (isUpdate) {
-      getData(); 
-      setUpdate(false);
+      getData();
     }
   }, [isUpdate]);
 
+  useEffect(() => {
+    setTimeout(() => {
+      setIsLoading(true);
+    }, 1000);
+  }, []);
+
   return (
     <>
-      <div className="flex gap-10">
+      <div className="flex gap-5">
         {/* Notes List Section */}
-        <div className="notes w-full h-[700px] p-8 rounded-[30px] border bg-white">
+        <div className="notes w-full h-[700px] p-8 rounded-[10px] border bg-white">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -106,17 +111,19 @@ const Notes: React.FC = () => {
           </div>
 
           {/* Notes List */}
-          <div className="mt-10 flex flex-col gap-4 overflow-y-scroll scrollbar scrollbar-thumb-[#aaa] scrollbar-track-[#2A2A2A] scrollbar-thumb-rounded-lg h-[calc(100%-180px)]">
-            {notes.map((note) => (
-              <CardDefault
-                onClick={() => handleOnClick(note.id)}
-                title={note.title}
-                lead={note.desc}
-                time={note.time}
-                date={note.created_at}
-                key={note.id}
-              />
-            ))}
+          <div className="mt-10 flex flex-col gap-4 overflow-y-scroll h-[calc(100%-170px)] scrollbar scrollbar-thumb-[#2A2A2A] scrollbar-track-[#f4f4f4] scrollbar-thumb-rounded-lg">
+            {isLoading ? (
+              notes.map((note) => (
+                <CardDefault
+                  onClick={() => handleOnClick(note.id)}
+                  title={note.title}
+                  lead={note.desc}
+                  time={note.time}
+                  date={note.created_at}
+                  key={note.id}
+                />
+              ))
+            ) : (<p className="text-center"> Loading ...</p>)}
           </div>
         </div>
 

@@ -5,8 +5,8 @@ export default function ToDoList() {
 
 
   return (
-    <div className="wrapper p-5 rounded-[20px] bg-[#F2F2F2]">
-      <div className="card rounded-[20px]  bg-[#fff] p-8">
+    <div className="wrapper p-5 rounded-[10px] bg-[#F2F2F2]">
+      <div className="card rounded-[10px]  bg-[#fff] p-5">
         {/* Header */}
         <div className="wrapper-text flex items-center gap-4  py-3">
           <i>

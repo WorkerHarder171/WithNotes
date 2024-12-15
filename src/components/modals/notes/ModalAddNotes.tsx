@@ -15,6 +15,7 @@ interface ModalAddNotesProps {
 interface FormData {
   title: string;
   desc: string;
+  
 }
 
 export default function ModalAddNotes({
@@ -22,6 +23,7 @@ export default function ModalAddNotes({
   onClose,
   onDataUpdate,
 }: ModalAddNotesProps): JSX.Element {
+  // Form handling
   const {
     handleSubmit,
     control,
@@ -31,6 +33,7 @@ export default function ModalAddNotes({
 
   const [userEmail, setUserEmail] = useState<string>("");
 
+  // Get user email
   const getUserEmail = async () => {
     const {
       data: { user },
@@ -40,7 +43,7 @@ export default function ModalAddNotes({
       setUserEmail(user.email || "");
     }
     if (error) {
-      console.error("Error fetching user:", error.message);
+      throw new Error(error.message || "Error fetching user");
     }
   };
 
@@ -48,8 +51,7 @@ export default function ModalAddNotes({
     getUserEmail();
   }, []);
 
-
-
+  // Handle form submit
   const handleOnSubmit = async (data: FormData): Promise<void> => {
     try {
       const { error } = await supabase.from("notes").insert([
@@ -61,20 +63,18 @@ export default function ModalAddNotes({
           created_at: new Date(),
         },
       ]);
-  
+
       if (error) {
-        console.error("Error inserting notes:", error.message);
-        return;
+        throw new Error(error.message);
       }
-  
+
       reset();
       onClose();
-      onDataUpdate(); 
+      onDataUpdate();
     } catch (err) {
-      console.error("Error inserting notes:", err);
+      throw new Error(err.message || "Error inserting notes");
     }
   };
-  
 
   useEffect(() => {
     if (!isOpen) {
@@ -82,6 +82,16 @@ export default function ModalAddNotes({
     }
   }, [isOpen, reset]);
 
+
+  const handleFileUpload = async () => {
+    try{
+      const filePath = `images/${uuidv4()}_${selectedFile.name}`;
+      const {error} = await supabase.storage.from("images").upload(filePath, selectedFile);
+    }
+    catch (error) {
+      throw new Error(error.message || "Error uploading file");
+    }
+  }
   return (
     <Modal open={isOpen} onClose={onClose}>
       <Box
