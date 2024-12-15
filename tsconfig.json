@@ -5,6 +5,8 @@
       "@/*": ["src/*"]
     }
   },
+  "outDir": "./dist", 
+  "rootDir": "./src", 
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },

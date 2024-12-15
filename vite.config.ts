@@ -13,6 +13,9 @@ const config: UserConfig = defineConfig({
   optimizeDeps: {
     include: ["react", "react-dom"],
   },
+  build: {
+    outDir: "dist", 
+  },
   server: {
   },
 });
