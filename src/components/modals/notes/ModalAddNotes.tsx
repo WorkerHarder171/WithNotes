@@ -36,15 +36,21 @@ const ModalAddNotes: React.FC<ModalAddNotesProps> = ({
 
   // Get user email
   const getUserEmail = async () => {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-    if (user) {
-      setUserEmail(user.email || "");
-    }
-    if (error) {
-      throw new Error(error.message || "Error fetching user");
+    try {
+      const {
+        data,
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data) {
+        setUserEmail(data.email);
+      }
+    } catch (err) {
+      console.error("Error fetching user:", err);
     }
   };
 
