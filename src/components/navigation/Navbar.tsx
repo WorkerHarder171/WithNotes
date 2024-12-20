@@ -19,7 +19,7 @@ export default function Navbar(): JSX.Element {
     authService.isAuthorized()
   );
 
-  const handleAutrorized = async (): Promise<void> => {
+  const handleAuthorized = async (): Promise<void> => {
     const isAuth = await authService.isAuthorized();
     setIsAuthorized(isAuth);
   };
@@ -235,7 +235,7 @@ export default function Navbar(): JSX.Element {
       <ModalSignIn
         isOpen={isSignInModalOpen}
         onClose={() => setSignInModalOpen(false)}
-        onAuthorized={handleAutrorized}
+        onAuthorized={handleAuthorized}
       />
 
       <ModalAddNotes

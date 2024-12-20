@@ -16,7 +16,7 @@ interface ModalAddNotesProps {
 interface FormData {
   title: string;
   desc: string;
-  
+
 }
 
 const ModalAddNotes: React.FC<ModalAddNotesProps> = ({
@@ -37,22 +37,22 @@ const ModalAddNotes: React.FC<ModalAddNotesProps> = ({
   // Get user email
   const getUserEmail = async () => {
     try {
-      const {
-        data,
-        error,
-      } = await supabase.auth.api.getUserByCookie();
+      const { data: sessionData, error } = await supabase.auth.getSession();
 
       if (error) {
         throw new Error(error.message);
       }
 
-      if (data) {
-        setUserEmail(data.email);
+      if (sessionData?.session?.user) {
+        setUserEmail(sessionData.session.user.email || "");
+      } else {
+        console.error("No session or user found");
       }
     } catch (err) {
       console.error("Error fetching user:", err);
     }
   };
+
 
   useEffect(() => {
     getUserEmail();

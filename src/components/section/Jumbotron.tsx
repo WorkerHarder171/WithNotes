@@ -8,12 +8,6 @@ export default function Jumbotron(): JSX.Element {
   return (
     <>
       <div className="relative bg-[#fff] rounded-[10px] h-[78vh]">
-        {/* Pattern Background */}
-        {/* <div className="absolute z-10 w-full h-full left-0 top-0 pattern-boxes pattern-gray-400 pattern-bg-transparent pattern-opacity-10 pattern-size-6"></div> */}
-
-        {/* Gradient Background */}
-        {/* <div className="absolute z-20 w-full h-full left-0 top-0 bg-gradient-to-t from-rich-black to-transparent"></div> */}
-
         {/* Content */}
         <div className="flex justify-center items-center h-full relative z-30 p-16">
           <div className="wrapper">
@@ -43,7 +37,13 @@ export default function Jumbotron(): JSX.Element {
       </div>
 
       {/* Modal Sign-In */}
-      <ModalSignIn isOpen={openModal} onClose={() => setOpenModal(false)} />
+      <ModalSignIn
+        isOpen={openModal}
+        onClose={() => setOpenModal(false)}
+        onAuthorized={() => {
+          console.log("authorized");
+        }}
+      />
     </>
   );
 }
